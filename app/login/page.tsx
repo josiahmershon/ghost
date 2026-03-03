@@ -77,10 +77,12 @@ export default function LoginPage() {
               style={{
                 fontSize: 14,
                 color: mode === m ? "var(--text)" : "var(--text-muted)",
+                borderTop: "none",
+                borderLeft: "none",
+                borderRight: "none",
                 borderBottom: mode === m ? "1px solid var(--accent)" : "1px solid transparent",
                 paddingBottom: 4,
                 background: "none",
-                border: "none",
                 cursor: "pointer",
               }}
             >
