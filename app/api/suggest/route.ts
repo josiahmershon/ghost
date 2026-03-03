@@ -5,6 +5,8 @@ import {
   buildSuggestionUserMessage,
 } from "@/lib/ai/prompts";
 import type { SuggestionRequestBody } from "@/lib/ai/contextAssembler";
+import { embedText } from "@/lib/references/embeddings";
+import { createAdminClient } from "@/lib/supabase/server";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -55,12 +57,34 @@ export async function POST(req: NextRequest) {
     return new Response("", { status: 200 });
   }
 
+  // RAG: only embed + query if this document actually has references
+  let relevantChunks: string[] = [];
+  try {
+    const supabase = createAdminClient();
+    const { count } = await supabase
+      .from("doc_references")
+      .select("*", { count: "exact", head: true })
+      .eq("document_id", body.documentId);
+
+    if (count && count > 0) {
+      const embedding = await embedText(currentParagraph);
+      const { data } = await supabase.rpc("match_reference_chunks", {
+        p_document_id: body.documentId,
+        p_embedding: JSON.stringify(embedding),
+        p_top_k: 3,
+      });
+      if (data) relevantChunks = data.map((r: { chunk_text: string }) => r.chunk_text);
+    }
+  } catch {
+    // RAG failure is non-fatal — suggestions continue without reference context
+  }
+
   const userMessage = buildSuggestionUserMessage({
     documentType: documentType ?? "essay",
     audience: audience ?? "general",
     sectionType: sectionType ?? "body",
     outline: outline ?? [],
-    relevantChunks: [],
+    relevantChunks,
     previousParagraph: previousParagraph ?? null,
     currentParagraphUpToCursor: currentParagraph,
   });

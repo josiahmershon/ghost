@@ -503,6 +503,77 @@ Execute in this order. Each step should be fully working before moving to the ne
 27. Auth flow (Supabase email/password + Google OAuth)
 28. Landing page
 
+### Phase 6: Plagiarism Checker
+29. Build plagiarism check panel and trigger (Cmd+Shift+P or toolbar button)
+30. Build /api/plagiarism route
+31. Integrate results into the editor with inline highlights
+
+---
+
+## Plagiarism Checker
+
+### UX
+- Trigger: `Cmd+Shift+P` on selected text, or a "Check" button in the status bar for the full document
+- A right-side panel slides in (similar to Reference Shelf) showing results
+- Suspicious passages are highlighted in the editor with a soft amber underline decoration (ProseMirror decoration, not real content — same pattern as ghost text)
+- Each highlighted passage links to the matched source
+
+### How it works
+Two-layer approach:
+
+**Layer 1 — AI pattern detection (fast, always runs):**
+Send the text to Claude Sonnet with a prompt asking it to flag any passages that:
+- Sound like they were copied verbatim from a known source
+- Use phrasing, sentence structures, or idioms atypical of the surrounding voice
+- Make specific claims, statistics, or quotes that should have citations
+
+Sonnet returns a JSON list of flagged spans with a reason and confidence score. This is not a true database check — it's voice-consistency analysis. Fast and surprisingly effective.
+
+**Layer 2 — Web search verification (slower, on demand):**
+For each flagged span, run a Google Custom Search API query for the exact phrase in quotes. Return the top 3 matching URLs with similarity score. The user can click to verify the source.
+
+### API route: /api/plagiarism
+```typescript
+// POST with:
+// { text: string, mode: 'ai-only' | 'full' }
+//
+// Returns JSON (not streaming):
+// {
+//   flags: Array<{
+//     text: string,           // the flagged span
+//     startIndex: number,     // char offset in original text
+//     endIndex: number,
+//     reason: string,         // why it was flagged
+//     confidence: 'low' | 'medium' | 'high',
+//     sources?: Array<{ url: string, title: string, snippet: string }>
+//   }>
+// }
+```
+
+### Prompt for Layer 1 (in lib/ai/prompts.ts):
+```
+You are a plagiarism detection assistant. Analyze the provided text and identify passages that may be:
+1. Copied or closely paraphrased from external sources
+2. Voice-inconsistent with the surrounding writing (suggesting a paste-in)
+3. Making specific statistics, quotes, or claims without attribution
+
+Return ONLY valid JSON in this format:
+{"flags": [{"text": "...", "startIndex": 0, "endIndex": 0, "reason": "...", "confidence": "medium"}]}
+
+If nothing is suspicious, return: {"flags": []}
+Do not include any explanation outside the JSON.
+```
+
+### Status bar indicator
+When a check has been run, show: `⚠ 3 flags` in amber in the status bar. Clicking it reopens the panel.
+
+### Environment variable needed
+```
+GOOGLE_SEARCH_API_KEY=    # For Layer 2 web verification
+GOOGLE_SEARCH_CX=         # Custom Search Engine ID
+```
+Layer 2 is optional — Layer 1 works without it.
+
 ---
 
 ## Critical Implementation Notes

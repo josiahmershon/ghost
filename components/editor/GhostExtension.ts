@@ -104,6 +104,11 @@ export const GhostExtension = Extension.create<GhostOptions>({
     if (!this.options.enabled) return;
     if (!transaction.docChanged) return;
 
+    // Abort any in-flight request immediately — the context it was built from
+    // is now stale. recordKeystroke will schedule a fresh one after the pause.
+    this.storage.abortController?.abort();
+    this.storage.abortController = null;
+
     const isDelete =
       transaction.doc.nodeSize < transaction.before.nodeSize;
 

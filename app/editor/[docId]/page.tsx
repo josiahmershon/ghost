@@ -8,6 +8,7 @@ import { useDocumentStore, Document } from "@/stores/documentStore";
 import GhostEditor from "@/components/editor/GhostEditor";
 import InlineTransform from "@/components/editor/InlineTransform";
 import DocumentList from "@/components/sidebar/DocumentList";
+import ReferenceShelf from "@/components/shelf/ReferenceShelf";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 
 interface TransformState {
@@ -27,6 +28,7 @@ export default function EditorPage() {
 
   const { currentDoc, setCurrentDoc, isSaving, saveError } = useDocumentStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [shelfOpen, setShelfOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [transform, setTransform] = useState<TransformState | null>(null);
@@ -87,6 +89,10 @@ export default function EditorPage() {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         openTransform();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "/") {
+        e.preventDefault();
+        setShelfOpen((v) => !v);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -170,6 +176,20 @@ export default function EditorPage() {
           <ThemeToggle />
         </footer>
       </main>
+
+      {/* Reference shelf */}
+      <aside
+        className="flex-shrink-0 overflow-hidden transition-all duration-200 ease-out border-l"
+        style={{
+          width: shelfOpen ? "260px" : "0px",
+          borderColor: "var(--border)",
+          background: "var(--sidebar-bg)",
+        }}
+      >
+        <div className="w-[260px] h-full">
+          <ReferenceShelf documentId={docId} />
+        </div>
+      </aside>
 
       {/* Inline transform floating panel */}
       {transform && (
