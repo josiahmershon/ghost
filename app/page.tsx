@@ -10,7 +10,15 @@ export default function Home() {
 
   useEffect(() => {
     async function redirectToEditor() {
-      // Find most recently updated doc, or create one
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+
       const { data } = await supabase
         .from("documents")
         .select("id")
@@ -23,7 +31,7 @@ export default function Home() {
       } else {
         const { data: newDoc, error } = await supabase
           .from("documents")
-          .insert({ title: "Untitled", content: {} })
+          .insert({ title: "Untitled", content: {}, user_id: user.id })
           .select("id")
           .single();
         if (!error && newDoc) {

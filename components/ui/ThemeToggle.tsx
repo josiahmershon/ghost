@@ -23,6 +23,7 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggle}
+      data-theme-toggle
       className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors text-sm"
       title="Toggle theme (Cmd+D)"
     >

@@ -28,9 +28,10 @@ export default function DocumentList({ currentDocId }: Props) {
   }, []);
 
   async function createDoc() {
+    const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await supabase
       .from("documents")
-      .insert({ title: "Untitled", content: {} })
+      .insert({ title: "Untitled", content: {}, user_id: user?.id })
       .select()
       .single();
     if (!error && data) {

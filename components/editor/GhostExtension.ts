@@ -57,10 +57,15 @@ export const GhostExtension = Extension.create<GhostOptions>({
     return {
       pauseDetector: null as PauseDetector | null,
       abortController: null as AbortController | null,
+      // Mutable so the editor page can update these without remounting
+      documentType: "" as string,
+      audience: "" as string,
     };
   },
 
   onCreate() {
+    this.storage.documentType = this.options.documentType;
+    this.storage.audience = this.options.audience;
     if (!this.options.enabled) return;
 
     this.storage.pauseDetector = new PauseDetector(
@@ -132,8 +137,8 @@ export const GhostExtension = Extension.create<GhostOptions>({
 
           const context = assembleContext(editor.state, {
             documentId: this.options.documentId,
-            documentType: this.options.documentType,
-            audience: this.options.audience,
+            documentType: this.storage.documentType || this.options.documentType,
+            audience: this.storage.audience || this.options.audience,
           });
 
           if (!context) return false;
